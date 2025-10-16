@@ -16,10 +16,10 @@
 
 package com.example.inventory.ui.item
 
-import ItemsRepository
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.inventory.data.ItemsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -32,10 +32,15 @@ import kotlinx.coroutines.launch
  */
 class ItemDetailsViewModel(
     savedStateHandle: SavedStateHandle,
-    private val itemsRepository: ItemsRepository
+    private val itemsRepository: ItemsRepository,
 ) : ViewModel() {
 
     private val itemId: Int = checkNotNull(savedStateHandle[ItemDetailsDestination.itemIdArg])
+
+    /**
+     * Holds the item details ui state. The data is retrieved from [ItemsRepository] and mapped to
+     * the UI state.
+     */
     val uiState: StateFlow<ItemDetailsUiState> =
         itemsRepository.getItemStream(itemId)
             .filterNotNull()
@@ -46,13 +51,10 @@ class ItemDetailsViewModel(
                 started = SharingStarted.WhileSubscribed(TIMEOUT_MILLIS),
                 initialValue = ItemDetailsUiState()
             )
-    companion object {
-        private const val TIMEOUT_MILLIS = 5_000L
-    }
 
-    suspend fun deleteItem() {
-        itemsRepository.deleteItem(uiState.value.itemDetails.toItem())
-    }
+    /**
+     * Reduces the item quantity by one and update the [ItemsRepository]'s data source.
+     */
     fun reduceQuantityByOne() {
         viewModelScope.launch {
             val currentItem = uiState.value.itemDetails.toItem()
@@ -61,9 +63,18 @@ class ItemDetailsViewModel(
             }
         }
     }
+
+    /**
+     * Deletes the item from the [ItemsRepository]'s data source.
+     */
+    suspend fun deleteItem() {
+        itemsRepository.deleteItem(uiState.value.itemDetails.toItem())
+    }
+
+    companion object {
+        private const val TIMEOUT_MILLIS = 5_000L
+    }
 }
-
-
 
 /**
  * UI state for ItemDetailsScreen
